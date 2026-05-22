@@ -232,7 +232,6 @@ export function createEmptyTask() {
     title: '',
     description: '',
     category: 'general',
-    priority: 'medium',
     startDate: today,
     recurrence: { type: 'none' },
     reminder: false,

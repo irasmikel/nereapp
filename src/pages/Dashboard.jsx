@@ -1,203 +1,192 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowRight, AlertCircle, TrendingUp, Flame } from 'lucide-react';
+import { ArrowRight, AlertCircle, Flame, TrendingUp, CheckCircle } from 'lucide-react';
 import { useApp } from '../hooks/useAppContext';
 import TaskCard from '../components/TaskCard';
 import ProgressRing from '../components/ProgressRing';
 import EmptyState from '../components/EmptyState';
 import { getGreeting, getTodayString, formatDate } from '../utils/dateUtils';
 import { isTaskCompletedOnDate } from '../utils/taskUtils';
-import { MOTIVATIONAL_MESSAGES } from '../data/categories';
+import { CATEGORIES, getCategoryById, MOTIVATIONAL_MESSAGES } from '../data/categories';
 
-const container = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.07 } },
-};
-const item = {
-  hidden: { y: 16, opacity: 0 },
-  show:   { y: 0,  opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } },
-};
+const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
+const item = { hidden: { y: 20, opacity: 0 }, show: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 280, damping: 22 } } };
 
 export default function Dashboard() {
-  const { getTodayTasks, getOverdueTasks, getUpcomingTasks, toggleComplete, openEditTask, deleteTask, stats, openAddTask, settings } = useApp();
+  const { tasks, getTodayTasks, getOverdueTasks, getUpcomingTasks, toggleComplete, openEditTask, deleteTask, stats, openAddTask } = useApp();
 
   const today = getTodayString();
   const todayTasks = getTodayTasks();
   const overdueTasks = getOverdueTasks();
-  const upcomingTasks = getUpcomingTasks(5).slice(0, 5);
+  const upcomingTasks = getUpcomingTasks(5).slice(0, 4);
   const todayCompleted = todayTasks.filter(t => isTaskCompletedOnDate(t, today));
-
-  const greeting = getGreeting();
+  const todayLabel = formatDate(today, { weekday: 'long', day: 'numeric', month: 'long' });
   const motivational = MOTIVATIONAL_MESSAGES[new Date().getDay() % MOTIVATIONAL_MESSAGES.length];
-  const todayFormatted = formatDate(today, { weekday: 'long', day: 'numeric', month: 'long' });
+
+  // Category summary
+  const catSummary = CATEGORIES.map(cat => {
+    const catTasks = todayTasks.filter(t => t.category === cat.id);
+    const done = catTasks.filter(t => isTaskCompletedOnDate(t, today)).length;
+    return { ...cat, total: catTasks.length, done };
+  }).filter(c => c.total > 0);
 
   return (
-    <motion.div
-      className="max-w-2xl mx-auto w-full"
-      variants={container}
-      initial="hidden"
-      animate="show"
-    >
-      {/* ── Header ───────────────────────────────── */}
-      <motion.div variants={item} className="px-5 pt-8 pb-2 md:px-8 md:pt-10">
-        <p className="text-sm text-warm-400 capitalize">{todayFormatted}</p>
-        <h1 className="text-2xl font-semibold text-warm-900 tracking-tight mt-0.5">
-          {greeting} 👋
-        </h1>
-        {settings?.showMotivation && (
-          <p className="text-sm text-warm-500 mt-1">{motivational}</p>
-        )}
-      </motion.div>
+    <motion.div className="max-w-2xl mx-auto w-full" variants={container} initial="hidden" animate="show">
 
-      {/* ── Today Summary Card ────────────────────── */}
-      <motion.div variants={item} className="mx-5 md:mx-8 mt-4">
-        <div className="card p-5 bg-gradient-to-br from-sage-50 to-white border-sage-100">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-xs font-medium text-sage-600 uppercase tracking-wider">Progreso de hoy</p>
-              <p className="text-3xl font-semibold text-warm-900 mt-1">
-                {todayCompleted.length}
-                <span className="text-xl text-warm-400 font-normal"> / {todayTasks.length}</span>
-              </p>
-              <p className="text-sm text-warm-500 mt-0.5">
-                {stats.todayProgress === 100 && todayTasks.length > 0
-                  ? '¡Todo completado! 🎉'
-                  : todayTasks.length === 0
-                  ? 'Sin tareas para hoy'
-                  : `${stats.todayProgress}% completado`}
-              </p>
-            </div>
+      {/* ── Hero card ─────────────────────────────────── */}
+      <motion.div variants={item} className="mx-4 mt-6 md:mx-8 md:mt-10">
+        <div className="hero-card px-6 pt-6 pb-5 relative overflow-hidden">
+          {/* Decorative circles */}
+          <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/5" />
+          <div className="absolute -bottom-12 -right-4 w-48 h-48 rounded-full bg-white/5" />
 
-            <ProgressRing
-              progress={stats.todayProgress}
-              size={88}
-              strokeWidth={7}
-              color="#7FB08F"
-              trackColor="#D5E8DB"
-            >
-              <span className="text-base font-semibold text-warm-900">{stats.todayProgress}%</span>
-            </ProgressRing>
-          </div>
+          <div className="relative">
+            <p className="text-green-200 text-sm capitalize font-medium">{todayLabel}</p>
+            <h1 className="text-2xl font-bold text-white mt-1">{getGreeting()} 🏡</h1>
+            <p className="text-green-200/80 text-sm mt-1">{motivational}</p>
 
-          {/* Quick stats row */}
-          <div className="flex gap-4 mt-4 pt-4 border-t border-sage-100">
-            <div className="flex items-center gap-2">
-              <Flame size={16} className="text-orange-400" />
+            <div className="flex items-center justify-between mt-5">
               <div>
-                <p className="text-xs text-warm-500">Racha</p>
-                <p className="text-sm font-semibold text-warm-800">{stats.streak} días</p>
+                <p className="text-green-100/70 text-xs font-medium uppercase tracking-wider">Progreso hoy</p>
+                <p className="text-4xl font-bold text-white mt-1">
+                  {todayCompleted.length}
+                  <span className="text-2xl text-green-200/70 font-normal"> / {todayTasks.length}</span>
+                </p>
+                <p className="text-green-100/80 text-sm mt-1">
+                  {stats.todayProgress === 100 && todayTasks.length > 0
+                    ? '¡Todo completado! 🎉'
+                    : todayTasks.length === 0 ? 'Sin tareas hoy'
+                    : `${stats.todayProgress}% completado`}
+                </p>
               </div>
+              <ProgressRing progress={stats.todayProgress} size={90} strokeWidth={7} color="white" trackColor="rgba(255,255,255,0.2)">
+                <span className="text-base font-bold text-white">{stats.todayProgress}%</span>
+              </ProgressRing>
             </div>
-            <div className="flex items-center gap-2">
-              <TrendingUp size={16} className="text-sage-500" />
-              <div>
-                <p className="text-xs text-warm-500">Esta semana</p>
-                <p className="text-sm font-semibold text-warm-800">{stats.weekRate}%</p>
-              </div>
+
+            {/* Progress bar */}
+            <div className="mt-4 h-1.5 bg-white/20 rounded-full overflow-hidden">
+              <motion.div className="h-full bg-white rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${stats.todayProgress}%` }}
+                transition={{ delay: 0.3, duration: 0.8, ease: 'easeOut' }} />
             </div>
-            {overdueTasks.length > 0 && (
+
+            {/* Mini stats */}
+            <div className="flex gap-4 mt-4 pt-4 border-t border-white/15">
               <div className="flex items-center gap-2">
-                <AlertCircle size={16} className="text-red-400" />
+                <Flame size={15} className="text-orange-300" />
                 <div>
-                  <p className="text-xs text-warm-500">Atrasadas</p>
-                  <p className="text-sm font-semibold text-red-600">{overdueTasks.length}</p>
+                  <p className="text-[10px] text-green-200/60 uppercase tracking-wider">Racha</p>
+                  <p className="text-sm font-semibold text-white">{stats.streak} días</p>
                 </div>
               </div>
-            )}
+              <div className="flex items-center gap-2">
+                <TrendingUp size={15} className="text-green-300" />
+                <div>
+                  <p className="text-[10px] text-green-200/60 uppercase tracking-wider">Semana</p>
+                  <p className="text-sm font-semibold text-white">{stats.weekRate}%</p>
+                </div>
+              </div>
+              {overdueTasks.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={15} className="text-red-300" />
+                  <div>
+                    <p className="text-[10px] text-green-200/60 uppercase tracking-wider">Atrasadas</p>
+                    <p className="text-sm font-semibold text-red-200">{overdueTasks.length}</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>
 
-      {/* ── Overdue ───────────────────────────────── */}
-      {overdueTasks.length > 0 && (
-        <motion.div variants={item} className="mx-5 md:mx-8 mt-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-warm-800 flex items-center gap-2">
-              <AlertCircle size={15} className="text-red-400" />
-              Atrasadas
-              <span className="bg-red-100 text-red-600 text-xs font-semibold px-2 py-0.5 rounded-full">
-                {overdueTasks.length}
-              </span>
-            </h2>
+      {/* ── Category rooms scroll ─────────────────────── */}
+      {catSummary.length > 0 && (
+        <motion.div variants={item} className="mt-5">
+          <div className="flex items-center justify-between px-5 md:px-8 mb-3">
+            <h2 className="text-sm font-bold text-warm-700 uppercase tracking-wider">Habitaciones</h2>
           </div>
-          <div className="space-y-2">
-            {overdueTasks.slice(0, 3).map(task => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                date={task.startDate}
-                onComplete={toggleComplete}
-                onEdit={openEditTask}
-                onDelete={deleteTask}
-                compact
-              />
+          <div className="flex gap-3 overflow-x-auto px-5 md:px-8 pb-1 scrollbar-none">
+            {catSummary.map(cat => (
+              <motion.div key={cat.id} whileTap={{ scale: 0.95 }}
+                className="shrink-0 rounded-2xl p-4 w-28 cursor-pointer"
+                style={{ background: cat.gradient, boxShadow: `0 4px 14px ${cat.color}33` }}>
+                <span className="text-2xl block mb-2">{cat.emoji}</span>
+                <p className="text-white text-xs font-bold leading-tight">{cat.name}</p>
+                <p className="text-white/70 text-[10px] mt-1">{cat.done}/{cat.total}</p>
+                <div className="mt-2 h-1 bg-white/30 rounded-full overflow-hidden">
+                  <div className="h-full bg-white rounded-full transition-all"
+                    style={{ width: `${cat.total > 0 ? Math.round(cat.done / cat.total * 100) : 0}%` }} />
+                </div>
+              </motion.div>
             ))}
           </div>
         </motion.div>
       )}
 
-      {/* ── Today's Tasks ─────────────────────────── */}
-      <motion.div variants={item} className="mx-5 md:mx-8 mt-6">
+      {/* ── Overdue ───────────────────────────────────── */}
+      {overdueTasks.length > 0 && (
+        <motion.div variants={item} className="mx-5 md:mx-8 mt-5">
+          <div className="bg-red-50 border border-red-100 rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertCircle size={15} className="text-red-400" />
+              <h2 className="text-sm font-bold text-red-700">
+                Atrasadas <span className="bg-red-100 text-red-500 text-xs px-2 py-0.5 rounded-full ml-1">{overdueTasks.length}</span>
+              </h2>
+            </div>
+            <div className="space-y-2">
+              {overdueTasks.slice(0, 2).map(task => (
+                <TaskCard key={task.id} task={task} date={task.startDate}
+                  onComplete={toggleComplete} onEdit={openEditTask} onDelete={deleteTask} compact />
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── Today's Tasks ─────────────────────────────── */}
+      <motion.div variants={item} className="mx-5 md:mx-8 mt-5">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-warm-800">Tareas de hoy</h2>
-          <Link to="/today" className="text-xs text-sage-600 font-medium flex items-center gap-1 hover:text-sage-700">
+          <h2 className="text-sm font-bold text-warm-700 uppercase tracking-wider">Tareas de hoy</h2>
+          <Link to="/today" className="text-xs text-sage-600 font-semibold flex items-center gap-1 hover:text-sage-700">
             Ver todas <ArrowRight size={12} />
           </Link>
         </div>
 
         {todayTasks.length === 0 ? (
-          <EmptyState
-            emoji="🌿"
-            title="Sin tareas para hoy"
+          <EmptyState emoji="🌿" title="Sin tareas para hoy"
             subtitle="Disfruta tu día o añade algo nuevo"
-            action={
-              <button onClick={() => openAddTask()} className="btn-sage text-sm">
-                + Añadir tarea
-              </button>
-            }
-          />
+            action={<button onClick={() => openAddTask()} className="btn-sage text-sm">+ Añadir tarea</button>} />
         ) : (
           <div className="space-y-2">
             {todayTasks.slice(0, 5).map(task => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                date={today}
-                onComplete={toggleComplete}
-                onEdit={openEditTask}
-                onDelete={deleteTask}
-              />
+              <TaskCard key={task.id} task={task} date={today}
+                onComplete={toggleComplete} onEdit={openEditTask} onDelete={deleteTask} />
             ))}
             {todayTasks.length > 5 && (
-              <Link to="/today" className="block text-center py-3 text-sm text-warm-500 hover:text-warm-700">
-                Ver {todayTasks.length - 5} más...
+              <Link to="/today" className="block text-center py-2.5 text-sm text-warm-400 hover:text-warm-600 font-medium">
+                +{todayTasks.length - 5} más...
               </Link>
             )}
           </div>
         )}
       </motion.div>
 
-      {/* ── Upcoming ──────────────────────────────── */}
+      {/* ── Upcoming ──────────────────────────────────── */}
       {upcomingTasks.length > 0 && (
-        <motion.div variants={item} className="mx-5 md:mx-8 mt-6 mb-10">
+        <motion.div variants={item} className="mx-5 md:mx-8 mt-5 mb-10">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-warm-800">Próximamente</h2>
-            <Link to="/calendar" className="text-xs text-sage-600 font-medium flex items-center gap-1 hover:text-sage-700">
+            <h2 className="text-sm font-bold text-warm-700 uppercase tracking-wider">Próximamente</h2>
+            <Link to="/calendar" className="text-xs text-sage-600 font-semibold flex items-center gap-1">
               Calendario <ArrowRight size={12} />
             </Link>
           </div>
           <div className="space-y-2">
-            {upcomingTasks.map(task => (
-              <TaskCard
-                key={`${task.id}-${task._dueDate}`}
-                task={task}
-                date={task._dueDate}
-                onComplete={toggleComplete}
-                onEdit={openEditTask}
-                onDelete={deleteTask}
-                showDate
-                compact
-              />
+            {upcomingTasks.map((task, i) => (
+              <TaskCard key={`${task.id}-${i}`} task={task} date={task._dueDate}
+                onComplete={toggleComplete} onEdit={openEditTask} onDelete={deleteTask} showDate />
             ))}
           </div>
         </motion.div>
